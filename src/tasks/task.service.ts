@@ -27,29 +27,34 @@ export class TaskService {
     const { type, params } = createTaskDto;
     const taskType = type as TaskType; // Ensure it's cast to TaskType for store and cache operations
 
-    const cached = this.taskCache.get(taskType, params);
-    const existingTask = cached ? this.taskStore.findById(cached.id) : null;
+    const cachedId = this.taskCache.get(taskType, params);
+    let existingTask: Task | undefined = undefined;
+    if (cachedId) {
+      existingTask = await this.taskStore.findById(cachedId.id);
+    }
+
     if (existingTask) {
       this.logger.log(`Cache hit for task type '${taskType}' with params ${JSON.stringify(params)}. Task ID: ${existingTask.id}, Status: ${existingTask.status}`);
       return existingTask;
     }
     const taskId = uuidv4();
-    const task = this.taskStore.create(taskId, taskType, params); 
+    // Ensure 'create' is awaited and the result is used
+    const newTask = await this.taskStore.create(taskId, taskType, params);
     this.taskCache.set(taskType, params, taskId);
 
-    this.taskQueue.enqueue(task);
+    this.taskQueue.enqueue(newTask); // Use the resolved task object
 
-    this.taskEventsService.emitTaskUpdate(task);
-    this.logger.log(`Task ${taskId} ('${taskType}') created and enqueued. Status: ${task.status}`);
-    return task;
+    this.taskEventsService.emitTaskUpdate(newTask); // Use the resolved task object
+    this.logger.log(`Task ${taskId} ('${taskType}') created and enqueued. Status: ${newTask.status}`);
+    return newTask; // Return the resolved task object
   }
 
-  getTask(id: string): Task | undefined {
+  async getTask(id: string): Promise<Task | undefined> {
     return this.taskStore.findById(id);
   }
 
-  getTaskStatus(id: string): TaskStatus {
-    const task = this.taskStore.findById(id);
+  async getTaskStatus(id: string): Promise<TaskStatus> {
+    const task = await this.taskStore.findById(id);
     if (!task) {
       this.logger.warn(`Status request for non-existent task ID: ${id}`);
       throw new NotFoundException(`Task with ID ${id} not found`);
@@ -57,8 +62,8 @@ export class TaskService {
     return task.status;
   }
 
-  getTaskResult(id: string): { result?: any; error?: string; status: TaskStatus; message?: string } {
-    const task = this.taskStore.findById(id);
+  async getTaskResult(id: string): Promise<{ result?: any; error?: string; status: TaskStatus; message?: string }> {
+    const task = await this.taskStore.findById(id);
     if (!task) {
       this.logger.warn(`Result request for non-existent task ID: ${id}`);
       throw new NotFoundException(`Task with ID ${id} not found`);
@@ -73,7 +78,7 @@ export class TaskService {
     return { result: task.result, status: task.status };
   }
 
-  getAllTasks(): Task[] {
+  async getAllTasks(): Promise<Task[]> {
     return this.taskStore.findAll();
   }
 } 

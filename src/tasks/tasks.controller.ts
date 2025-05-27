@@ -31,7 +31,7 @@ export class TasksController {
   @Get('all/status')
   @ApiOperation({ summary: 'Get status of all tasks' })
   @ApiResponse({ status: 200, description: 'List of all tasks and their status', type: [Object] })
-  getAllTasksStatus(): Task[] {
+  async getAllTasksStatus(): Promise<Task[]> {
     this.logger.log('Received request to get status of all tasks');
     return this.taskService.getAllTasks();
   }
@@ -39,25 +39,25 @@ export class TasksController {
   @Get(':id/status')
   @ApiOperation({ summary: 'Get the status of a specific task' })
   @ApiParam({ name: 'id', description: 'Task ID (UUID)', type: String })
-  getTaskStatus(@Param('id', new ParseUUIDPipe()) id: string): { status: TaskStatus } {
+  async getTaskStatus(@Param('id', new ParseUUIDPipe()) id: string): Promise<{ status: TaskStatus }> {
     this.logger.log(`Received request to get status for task ID: ${id}`);
-    const status = this.taskService.getTaskStatus(id);
+    const status = await this.taskService.getTaskStatus(id);
     return { status };
   }
 
   @Get(':id/result')
   @ApiOperation({ summary: 'Get the result of a specific task' })
   @ApiParam({ name: 'id', description: 'Task ID (UUID)', type: String })
-  getTaskResult(@Param('id', new ParseUUIDPipe()) id: string): any {
+  async getTaskResult(@Param('id', new ParseUUIDPipe()) id: string): Promise<any> {
     this.logger.log(`Received request to get result for task ID: ${id}`);
     return this.taskService.getTaskResult(id);
   }
 
   @Sse(':id/events')
   @ApiOperation({ summary: 'Subscribe to real-time events for a specific task (SSE)' })
-  sseEvents(@Param('id', new ParseUUIDPipe()) id: string): Observable<TaskEventMessage> {
+  async sseEvents(@Param('id', new ParseUUIDPipe()) id: string): Promise<Observable<TaskEventMessage>> {
     this.logger.log(`Received request for SSE events for task ID: ${id}`);
-    const task = this.taskService.getTask(id);
+    const task = await this.taskService.getTask(id);
     if (!task) {
       this.logger.warn(`SSE subscription attempt for non-existent task ID: ${id}`);
       throw new HttpException('Task not found, cannot subscribe to events', HttpStatus.NOT_FOUND);
