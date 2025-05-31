@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TaskStore } from '../task.store';
+import { TaskRepository } from '../task.repository';
 import { Task, TaskStatus } from '../interfaces/task.interface';
 import { TaskEventsService } from '../events/task.events.service';
 import { taskHandlers, TaskType } from '../logic/task.handlers';
@@ -10,7 +10,7 @@ export class TaskExecutor {
   private readonly logger = new Logger(TaskExecutor.name);
 
   constructor(
-    private readonly taskStore: TaskStore,
+    private readonly taskRepository: TaskRepository,
     private readonly taskEventsService: TaskEventsService,
   ) {}
 
@@ -29,7 +29,7 @@ export class TaskExecutor {
   }
 
   private updateTaskStatus(task: Task, status: TaskStatus): void {
-    this.taskStore.updateStatus(task.id, status);
+    this.taskRepository.updateStatus(task.id, status);
     this.taskEventsService.emitTaskUpdate({ ...task, status });
   }
 
@@ -50,7 +50,7 @@ export class TaskExecutor {
 
   private handleSuccess(task: Task, result: number): void {
     this.logger.log(`Task ${task.id} completed. Result: ${result}`);
-    this.taskStore.setResult(task.id, result);
+    this.taskRepository.setResult(task.id, result);
     this.taskEventsService.emitTaskUpdate({
       ...task,
       status: TaskStatus.COMPLETED,
@@ -67,7 +67,7 @@ export class TaskExecutor {
       `Error processing task ${task.id}: ${errorMessage}`,
       error instanceof Error ? error.stack : undefined,
     );
-    this.taskStore.setError(task.id, errorMessage);
+    this.taskRepository.setError(task.id, errorMessage);
     this.taskEventsService.emitTaskUpdate({
       ...task,
       status: TaskStatus.FAILED,

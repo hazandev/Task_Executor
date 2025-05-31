@@ -1,14 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Task } from '../interfaces/task.interface';
+import { EventEmitter } from 'events';
 
 @Injectable()
-export class TaskQueue {
-  private readonly queue: Task[] = [];
-  private readonly logger = new Logger(TaskQueue.name);
+export class TaskQueue extends EventEmitter {
+  private queue: Task[] = [];
 
-  enqueue(task: Task): void {
+  enqueue(task: Task) {
     this.queue.push(task);
-    this.logger.log(`Task ${task.id} enqueued. Queue size: ${this.queue.length}`);
+    this.emit('taskAdded');
   }
 
   dequeue(): Task | undefined {
@@ -16,9 +16,6 @@ export class TaskQueue {
       return undefined;
     }
     const task = this.queue.shift();
-    if (task) {
-      this.logger.log(`Task ${task.id} dequeued. Queue size: ${this.queue.length}`);
-    }
     return task;
   }
 
@@ -35,6 +32,6 @@ export class TaskQueue {
   }
 
   getTasks(): Task[] {
-    return [...this.queue]; // Return a copy to prevent external modification
+    return [...this.queue];
   }
 } 

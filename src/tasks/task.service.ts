@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 // import { InjectQueue } from '@nestjs/bullmq'; // Removed BullMQ
 // import { Queue } from 'bullmq'; // Removed BullMQ
 import { v4 as uuidv4 } from 'uuid';
-import { TaskStore } from './task.store';
+import { TaskRepository } from './task.repository';
 import { TaskCache } from './cache/task.cache';
 import { TaskEventsService } from './events/task.events.service';
 import { Task, TaskStatus, TaskType } from './interfaces/task.interface'; // Changed TaskName to TaskType
@@ -14,9 +14,8 @@ export class TaskService {
   private readonly logger = new Logger(TaskService.name);
 
   constructor(
-    // @InjectQueue('tasks') private readonly tasksQueue: Queue, // Removed BullMQ
     private readonly taskQueue: TaskQueue, // Inject TaskQueue
-    private readonly taskStore: TaskStore,
+    private readonly taskRepository: TaskRepository,
     private readonly taskCache: TaskCache,
     private readonly taskEventsService: TaskEventsService,
   ) {}
@@ -30,7 +29,7 @@ export class TaskService {
     const cachedId = this.taskCache.get(taskType, params);
     let existingTask: Task | undefined = undefined;
     if (cachedId) {
-      existingTask = await this.taskStore.findById(cachedId.id);
+      existingTask = await this.taskRepository.findById(cachedId.id);
     }
 
     if (existingTask) {
@@ -39,7 +38,7 @@ export class TaskService {
     }
     const taskId = uuidv4();
     // Ensure 'create' is awaited and the result is used
-    const newTask = await this.taskStore.create(taskId, taskType, params);
+    const newTask = await this.taskRepository.create(taskId, taskType, params);
     this.taskCache.set(taskType, params, taskId);
 
     this.taskQueue.enqueue(newTask); // Use the resolved task object
@@ -50,11 +49,11 @@ export class TaskService {
   }
 
   async getTask(id: string): Promise<Task | undefined> {
-    return this.taskStore.findById(id);
+    return this.taskRepository.findById(id);
   }
 
   async getTaskStatus(id: string): Promise<TaskStatus> {
-    const task = await this.taskStore.findById(id);
+    const task = await this.taskRepository.findById(id);
     if (!task) {
       this.logger.warn(`Status request for non-existent task ID: ${id}`);
       throw new NotFoundException(`Task with ID ${id} not found`);
@@ -63,7 +62,7 @@ export class TaskService {
   }
 
   async getTaskResult(id: string): Promise<{ result?: any; error?: string; status: TaskStatus; message?: string }> {
-    const task = await this.taskStore.findById(id);
+    const task = await this.taskRepository.findById(id);
     if (!task) {
       this.logger.warn(`Result request for non-existent task ID: ${id}`);
       throw new NotFoundException(`Task with ID ${id} not found`);
@@ -79,6 +78,6 @@ export class TaskService {
   }
 
   async getAllTasks(): Promise<Task[]> {
-    return this.taskStore.findAll();
+    return this.taskRepository.findAll();
   }
 } 

@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TasksController } from './tasks.controller';
 import { TaskService } from './task.service';
 import { TaskProcessor } from './processor/task.processor';
-import { TaskStore } from './task.store';
+import { TaskRepository } from './task.repository';
 import { TaskCache } from './cache/task.cache';
 import { TaskEventsService } from './events/task.events.service';
 import { TaskQueue } from './processor/task.queue';
@@ -17,11 +17,11 @@ import { TaskEntity } from './entities/task.entity';
     TaskService,
     TaskProcessor,
     TaskQueue,
-    TaskStore,
+    TaskRepository,
     TaskCache,
     TaskEventsService,
     TaskExecutor,
   ],
-  exports: [TaskService, TaskStore, TaskQueue, TypeOrmModule], // Export TaskQueue if needed elsewhere
+  exports: [TaskService, TaskRepository, TaskQueue, TypeOrmModule], // Export TaskQueue if needed elsewhere
 })
 export class TasksModule {} 
