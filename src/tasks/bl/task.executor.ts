@@ -24,10 +24,12 @@ export class TaskExecutor {
     this.logger.log(`Starting processing for task ${task?.id} (${task?.type})`);
 
     if (!task) {
+      this.logger.error('Task not found');
       throw new TaskNotFoundError(); 
     }
 
     if (await isServerOverloaded()) {
+      this.logger.error('Server is overloaded, task execution aborted');
       this.updateTaskStatus(task, TaskStatus.PENDING); // Revert to pending or a specific overloaded status
       throw new TaskOverloadedError();
     }
@@ -59,6 +61,7 @@ export class TaskExecutor {
   private calculateResult(task: Task): number {
     const handler = taskHandlers[task.type as TaskType];
     if (!handler) {
+      this.logger.error(`Invalid task type received: ${task.type}`);
       throw new InvalidTaskTypeError(task.type);
     }
     return handler(task.params);
