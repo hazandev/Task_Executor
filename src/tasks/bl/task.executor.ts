@@ -4,6 +4,12 @@ import { Task, TaskStatus } from '../interfaces/task.interface';
 import { TaskEventsService } from '../events/task.events.service';
 import { taskHandlers, TaskType } from '../logic/task.handlers';
 import { PROCESSING_DELAY_MIN_MS, PROCESSING_DELAY_MAX_MS } from '../../config/task.config';
+import {
+  TaskNotFoundError,
+  InvalidTaskTypeError,
+  TaskOverloadedError,
+} from '../errors/task.errors';
+import { isServerOverloaded } from '../../common/utils/system-utils';
 
 @Injectable()
 export class TaskExecutor {
@@ -15,7 +21,17 @@ export class TaskExecutor {
   ) {}
 
   async execute(task: Task): Promise<void> {
-    this.logger.log(`Starting processing for task ${task.id} (${task.type})`);
+    this.logger.log(`Starting processing for task ${task?.id} (${task?.type})`);
+
+    if (!task) {
+      throw new TaskNotFoundError(); 
+    }
+
+    if (await isServerOverloaded()) {
+      this.updateTaskStatus(task, TaskStatus.PENDING); // Revert to pending or a specific overloaded status
+      throw new TaskOverloadedError();
+    }
+    
     this.updateTaskStatus(task, TaskStatus.PROCESSING);
 
     try {
@@ -43,7 +59,7 @@ export class TaskExecutor {
   private calculateResult(task: Task): number {
     const handler = taskHandlers[task.type as TaskType];
     if (!handler) {
-      throw new Error(`Unsupported task type: ${task.type}`);
+      throw new InvalidTaskTypeError(task.type);
     }
     return handler(task.params);
   }
