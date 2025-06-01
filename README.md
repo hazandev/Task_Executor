@@ -1,28 +1,49 @@
-🧠 Task Executor
+# 🧠 Task Executor
 
-שרת NestJS להרצת משימות אסינכרוניות, עם תור פנימי, בדיקת עומס מערכת, קאש, שכבת לוגיקה עסקית, וחיבור ל־SQLite.
+>
+> ⚡ **שדרוג מערכת – ריפאקטור יוני 2025:** בוצע ריפאקטור למערכת על פי עקרונות Clean Architecture:
+> ביצוע משיכת משימות מהתור באמצעות Event ולא Interval.
+> הקוד חולק לשכבות אחראיות וברורות – controller, business logic, repository ו־processor.
+> נוסף חיבור ל־SQLite, לוגינג לכל שלב, טיפול שיטתי בשגיאות, ושידור התקדמות המשימות בזמן אמת ב־SSE.
+> 
 
-📐 ארכיטקטורה
-🎯 tasks.controller.ts – קבלת משימות חדשות וסטטוס דרך API
+---
 
-🧱 task.store.ts – אחסון זמני של משימות בזיכרון
+## 📐 ארכיטקטורה
 
-🧠 bl/task.executor.ts – ולידציה לוגית והעברת משימה לביצוע
+### 🎯 `tasks.controller.ts`  
+קבלת משימות חדשות וסטטוס דרך API נקי, עם ולידציה ו־Swagger.
 
-🔄 task.queue.ts – תור פנימי למשימות בהמתנה
+### 🧱 `task.store.ts`  
+אחסון זמני של משימות בזיכרון (עדיין קיים לצד SQLite לניהול מצבי ריצה).
 
-⚙️ task.processor.ts – ביצוע משימות באופן אסינכרוני
+### 🧠 `bl/task.executor.ts`  
+ולידציה לוגית והעברת משימה לביצוע (שכבת BL מופרדת מה־Service).
 
-🧮 logic/task.handlers.ts – לוגיקת חישוב (sum / multiply)
+### 🔄 `task.queue.ts`  
+תור פנימי מבוסס זיכרון, ללא BullMQ, עם בקרה על עומס מערכת.
 
-📡 task.events.service.ts – שידור אירועי סטטוס
+### ⚙️ `task.processor.ts`  
+רכיב המבצע בפועל את המשימות בצורה אסינכרונית.
 
-🧊 task.cache.ts – זיהוי משימות כפולות בעזרת Cache
+### 🧮 `logic/task.handlers.ts`  
+מימוש החישוב בפועל (חיבור / כפל), מופרד מה־BL.
 
-🗄️ task.entity.ts – מיפוי ישות משימה למסד הנתונים SQLite
+### 📡 `task.events.service.ts`  
+שידור עדכונים על סטטוס המשימה דרך SSE ללקוח.
 
-🧬 task.service.ts – גישה למסד נתונים SQLite (CRUD)
+### 🧊 `task.cache.ts`  
+Cache לזיהוי כפילויות ובדיקות יעילות – מוכן ל־Redis.
 
-🚀 הרצה
+### 🗄️ `task.entity.ts`  
+מיפוי ישות משימה למסד הנתונים `SQLite` באמצעות TypeORM.
 
+### 🧬 `task.service.ts`  
+ניהול אחראי של תיאום בין רכיבי המערכת (Events, Cache, Queue, DB).
+
+---
+
+## 🚀 הרצה
+
+```bash
 npm install && npm run start:dev
